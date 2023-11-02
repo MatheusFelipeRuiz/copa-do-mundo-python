@@ -3,27 +3,35 @@ from datetime import datetime;
 import requests;
 
 resposta = requests.get('https://raw.githubusercontent.com/openfootball/worldcup.json/master/2018/worldcup.json').json();
-
 @dataclass
 class Time:
-
-    _id: int;
     _nome: str;
-    _sigla: str;
-
-    @property
-    def id(self) -> int:
-        return self._id;
+    _codigo: str;
     @property
     def nome(self) -> str:
         return self._nome;
     @property
-    def sigla(self) -> str:
-        return self._sigla;
-
-
+    def codigo(self) -> str:
+        return self._codigo;
     def __str__(self) -> str:
-        return f'Nome do Time: {self._nome} - Sigla: {self._sigla}';
+        return f'Nome do Time: {self.nome} - Sigla: {self.codigo}';
+@dataclass
+class Gol:
+    _nome_jogoador: str;
+    @property
+    def nome_jogador(self) -> str:
+        return self._nome_jogoador;
+@dataclass
+class Jogador:
+    _nome: str;
+    _qtde_gols: int;
+
+    @property
+    def nome(self) -> str:
+        return self._nome;
+    @property
+    def qtde_gols(self) -> int:
+        return self._qtde_gols;
 
 @dataclass
 class Partida:
@@ -33,7 +41,8 @@ class Partida:
     _gols_mandante: int;
     _gols_visitante: int;
     _data: str;
-    _grupo: str;
+    _cidade: str;
+    _estadio: str;
     _hora: str;
 
     @property
@@ -52,20 +61,26 @@ class Partida:
     def data(self) -> str:
         return f"{datetime.strptime(self._data,format('%Y-%m-%d')).strftime('%d/%m/%Y')}";
     @property
-    def grupo(self) -> str:
-        return f"{self._grupo.replace('Group','').strip()}";
-    @property
     def hora(self) -> str:
         return f'{self._hora}h';
+    @property
+    def cidade(self) -> str:
+        return f'{self._cidade}';
+    @property
+    def estadio(self) -> str:
+        return f'{self._estadio}';
     def informacoes_partida(self) -> None:
-        print(f'Time mandante: {self._mandante.nome}');
-        print(f'Time Visitante: {self._visitante.nome}');
+        print(f'Time mandante: {self.mandante.nome}');
+        print(f'Time Visitante: {self.visitante.nome}');
         print(f'Quantidade de gols Mandante: {self.gols_mandante}');
         print(f'Quantidade de gols Visitante: {self.gols_visitante}');
         print(f'Data da partida: {self.data}');
-        print(f'Grupo: {self.grupo}');
-        print(f'Horário: {self.hora}')
+        print(f'Horário: {self.hora}');
+        print(f'Cidade: {self.cidade}');
+        print(f'Estádio: {self.estadio}');
         print('=-' * 50);
+
+PARTIDAS: list[Partida] = [];
 @dataclass
 class Grupo:
     _id: int;
@@ -95,7 +110,65 @@ def carregar_grupos():
             if 'group' in resposta['rounds'][rodada]['matches'][partida]:
                 print(resposta['rounds'][rodada]['matches'][partida]['group']);
                 count += 1;
-    
+def carregar_partidas():
+    qtde_rodadas: int = int(len(resposta['rounds']));
+    for rodada in range(qtde_rodadas):
+        dados_rodada = resposta['rounds'][rodada];
+        qtde_partidas = len(dados_rodada['matches']);
+        for partida in range(qtde_partidas):
+
+            time1_nome: str = dados_rodada['matches'][partida]['team1']['name'];
+            time1_codigo: str = dados_rodada['matches'][partida]['team1']['code'];
+
+            time2_nome: str = dados_rodada['matches'][partida]['team2']['name'];
+            time2_codigo: str = dados_rodada['matches'][partida]['team2']['code'];
+
+
+            id: int = dados_rodada['matches'][partida]['num'];
+            data_partida: str = dados_rodada['matches'][partida]['date'];
+            mandante: Time = Time(time1_nome, time1_codigo);
+            visitante: Time = Time(time2_nome, time2_codigo);
+            gols_mandante: int = dados_rodada['matches'][partida]['score1'];
+            gols_visitante: int = dados_rodada['matches'][partida]['score2'];
+            cidade: str = dados_rodada['matches'][partida]['city'];
+            estadio: str = dados_rodada['matches'][partida]['stadium']['name'];
+            horario: str = dados_rodada['matches'][partida]['time'];
+            partida: Partida = Partida(id, mandante, visitante, gols_mandante, gols_visitante,
+                              data_partida,cidade,estadio, horario);
+            PARTIDAS.append(partida);
+def partidas_carregadas():
+    if len(PARTIDAS) == 0:
+        carregar_partidas();
+def consultar_por_selecao(codigo_selecao: str) -> None:
+    partidas_carregadas();
+
+    partidas_selecao: list[Partida] = [];
+    for partida in PARTIDAS:
+        if partida.mandante.codigo == codigo_selecao or partida.visitante.codigo == codigo_selecao:
+            partidas_selecao.append(partida);
+    for partida in partidas_selecao:
+        partida.informacoes_partida();
+def consultar_por_estadio(estadio: str) -> None:
+    partidas_carregadas();
+
+    partidas_estadio: list[Partida] = [];
+    for partida in PARTIDAS:
+        if partida.estadio == estadio:
+            partidas_estadio.append(partida);
+    for partida in partidas_estadio:
+        partida.informacoes_partida();
+
+def consulta_por_cidade(cidade: str) -> None:
+    partidas_carregadas();
+
+    partidas_cidade: list[Partida] = [];
+    for partida in PARTIDAS:
+        if partida.cidade == cidade:
+            partidas_cidade.append(partida);
+    for partida in partidas_cidade:
+        partida.informacoes_partida();
+
+
 def menu_rodadas():
     print('Digite a fase que deseja mostrar de 1º a 20: ');
     print('1 a 15 - Fase de grupos ');
@@ -139,8 +212,13 @@ def menu_principal():
     print('6 - Consultar gols de determinado jogador');
     print('0 - Sair');
 def main():
-    carregar_grupos();
+    # carregar_grupos();
+    #consultar_por_selecao('BRA');
+    # consultar_por_estadio('Luzhniki Stadium');
+    # consulta_por_cidade('Moscow');
+    consultar_gols_jogador('Neymar');
     # opcao = -1;
+
     #
     # while opcao != 0:
     #     menu_principal();

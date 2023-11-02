@@ -6,22 +6,22 @@ from Gol import Gol;
 from Jogador import Jogador;
 from Time import Time;
 
-resposta = requests.get('https://raw.githubusercontent.com/openfootball/worldcup.json/master/2018/worldcup.json').json();
+resposta = requests.get(
+    'https://raw.githubusercontent.com/openfootball/worldcup.json/master/2018/worldcup.json').json();
 
 PARTIDAS: list[Partida] = [];
 GOLS: list[Gol] = [];
+
+
 @dataclass
 class Grupo:
-    _id: int;
     _nome: str;
     _partidas: list[Partida];
 
     @property
-    def id(self) -> int:
-        return self._id;
-    @property
     def nome(self) -> str:
         return self._nome;
+
     @property
     def partidas(self) -> list[Partida]:
         return self._partidas;
@@ -30,28 +30,40 @@ class Grupo:
         for partida in self.partidas:
             partida.informacoes_partida();
 
-def carregar_grupos():
-    qtde_rodadas = int(len(resposta['rounds']));
-    count = 0;
+def carregar_grupo(grupo: str) -> list[int]:
+    partidas_carregadas();
+    qtde_rodadas: int = len(resposta['rounds']);
+    identificador_partidas: list[int] = [];
+
     for rodada in range(qtde_rodadas):
-        qtde_partidas = len(resposta['rounds'][rodada]['matches']);
+        dados_rodada = resposta['rounds'][rodada];
+        qtde_partidas: int = len(dados_rodada['matches']);
         for partida in range(qtde_partidas):
-            if 'group' in resposta['rounds'][rodada]['matches'][partida]:
-                print(resposta['rounds'][rodada]['matches'][partida]['group']);
-                count += 1;
+            if 'group' in dados_rodada['matches'][partida]:
+                if grupo in dados_rodada['matches'][partida]['group']:
+                    identificador_partidas.append(dados_rodada['matches'][partida]['num']);
+    return identificador_partidas;
+def carregar_rodada(rodada: int):
+    partidas_carregadas();
+    identificador_partidas: list[int] = [];
+    qtde_partidas: int = len(resposta['rounds'][rodada]['matches']);
+    for partida in range(qtde_partidas):
+        id = int(resposta['rounds'][rodada]['matches'][partida]['num']);
+        identificador_partidas.append(id);
+    return identificador_partidas;
+
+
 def carregar_partidas():
     qtde_rodadas: int = int(len(resposta['rounds']));
     for rodada in range(qtde_rodadas):
         dados_rodada = resposta['rounds'][rodada];
         qtde_partidas = len(dados_rodada['matches']);
         for partida in range(qtde_partidas):
-
             time1_nome: str = dados_rodada['matches'][partida]['team1']['name'];
             time1_codigo: str = dados_rodada['matches'][partida]['team1']['code'];
 
             time2_nome: str = dados_rodada['matches'][partida]['team2']['name'];
             time2_codigo: str = dados_rodada['matches'][partida]['team2']['code'];
-
 
             id: int = dados_rodada['matches'][partida]['num'];
             data_partida: str = dados_rodada['matches'][partida]['date'];
@@ -59,12 +71,15 @@ def carregar_partidas():
             visitante: Time = Time(time2_nome, time2_codigo);
             gols_mandante: int = dados_rodada['matches'][partida]['score1'];
             gols_visitante: int = dados_rodada['matches'][partida]['score2'];
+
             cidade: str = dados_rodada['matches'][partida]['city'];
             estadio: str = dados_rodada['matches'][partida]['stadium']['name'];
             horario: str = dados_rodada['matches'][partida]['time'];
             partida: Partida = Partida(id, mandante, visitante, gols_mandante, gols_visitante,
-                              data_partida,cidade,estadio, horario);
+                                       data_partida, cidade, estadio, horario);
             PARTIDAS.append(partida);
+
+
 def carregar_gols():
     qtde_rodadas: int = int(len(resposta['rounds']));
     for rodada in range(qtde_rodadas):
@@ -73,9 +88,9 @@ def carregar_gols():
         for partida in range(qtde_partidas):
 
             if 'goals1' in dados_rodada['matches'][partida]:
-                if len(dados_rodada['matches'][partida]['goals1']) >  0:
+                if len(dados_rodada['matches'][partida]['goals1']) > 0:
                     gols_partida = dados_rodada['matches'][partida]['goals1'];
-                    for gol_partida in  gols_partida:
+                    for gol_partida in gols_partida:
                         nome_jogador = gol_partida['name'];
                         minuto_gol = gol_partida['minute'];
                         gol = Gol(nome_jogador, minuto_gol);
@@ -89,9 +104,13 @@ def carregar_gols():
                         minuto_gol = gol_partida['minute'];
                         gol = Gol(nome_jogador, minuto_gol);
                         GOLS.append(gol);
+
+
 def partidas_carregadas():
     if len(PARTIDAS) == 0:
         carregar_partidas();
+
+
 def consultar_por_selecao(codigo_selecao: str) -> bool:
     partidas_carregadas();
 
@@ -104,6 +123,7 @@ def consultar_por_selecao(codigo_selecao: str) -> bool:
             partida.informacoes_partida();
         return True;
     return False;
+
 def consultar_por_estadio(estadio: str) -> bool:
     partidas_carregadas();
 
@@ -116,6 +136,8 @@ def consultar_por_estadio(estadio: str) -> bool:
             partida.informacoes_partida();
         return True;
     return False;
+
+
 def consulta_por_cidade(cidade: str) -> bool:
     partidas_carregadas();
 
@@ -128,14 +150,17 @@ def consulta_por_cidade(cidade: str) -> bool:
             partida.informacoes_partida();
         return True;
     return False;
+
+
+
 def consultar_gols_jogador(jogador: str) -> bool:
+    partidas_carregadas();
     if len(GOLS) == 0:
         carregar_gols();
     gols_jogador: list[Gol] = [];
     for gol in GOLS:
         if jogador in gol.jogador:
             gols_jogador.append(gol);
-    print(len(gols_jogador));
     if len(gols_jogador) > 0:
         jogador = Jogador(jogador, gols_jogador);
         print('=-' * 30);
@@ -144,8 +169,49 @@ def consultar_gols_jogador(jogador: str) -> bool:
         print('=-' * 30);
         return True;
     return False;
+
+def consulta_rodadas(rodada: int):
+    partidas_rodada: list[int] = carregar_rodada(rodada);
+    qtde_partidas: int = len(partidas_rodada);
+    print('=-' * 50);
+    print(f'Quantidade de partidas na rodada: {qtde_partidas} partidas');
+    print('=-' * 50);
+    for partida in PARTIDAS:
+        if partida.id in partidas_rodada:
+            partida.informacoes_partida();
+def consultar_por_grupo(grupo: str):
+    partidas_carregadas();
+    lista_id_partidas: list[int] = carregar_grupo(grupo);
+    for partida in PARTIDAS:
+        if partida.id in lista_id_partidas:
+            partida.informacoes_partida();
+
+def analistar_resultados():
+    partidas_carregadas();
+    qtde_vitorias_mandante: int = 0;
+    qtde_vitorias_visitante: int = 0;
+    qtde_empates: int = 0;
+    for partida in PARTIDAS:
+        gols_mandante: int = partida.gols_mandante;
+        gols_visitante: int = partida.gols_visitante;
+
+        if gols_mandante > gols_visitante:
+            qtde_vitorias_mandante += 1;
+        elif gols_visitante > gols_mandante:
+            qtde_vitorias_visitante += 1;
+        else:
+            qtde_empates += 1;
+    print('=-' * 30);
+    print(f'Quantidade de vitórias mandante: {qtde_vitorias_mandante} vitórias');
+    print(f'Quantidade de vitórias visitante: {qtde_vitorias_visitante} vitórias');
+    print(f'Quantidade de empates: {qtde_empates} empates');
+    print('=-' * 30);
+
+
 def ler_rodada() -> int:
-    return int(input());
+    return int(input()) - 1;
+
+
 def menu_rodadas():
     print('Digite a fase que deseja mostrar de 1º a 20: ');
     print('1 a 15 - Fase de grupos ');
@@ -154,41 +220,23 @@ def menu_rodadas():
     print('18 - Semifinal');
     print('19 - Disputa pelo terceiro lugar');
     print('20 - Final ');
-def consulta_rodadas(rodada: int):
-    dados_partida = resposta['rounds'][rodada]['matches'];
-    qtde_partidas_rodada = len(resposta['rounds'][rodada]['matches']);
-    print('=-' * 50);
-    print(f'Quantidade de partidas na rodada: {qtde_partidas_rodada} partidas');
-    print('=-' * 50);
 
-    for partida in range(qtde_partidas_rodada):
-        time1_nome = dados_partida[partida]['team1']['name'];
-        time1_sigla = dados_partida[partida]['team1']['code'];
-        time1_gols = dados_partida[partida]['score1'];
 
-        time2_nome = dados_partida[partida]['team2']['name'];
-        time2_sigla = dados_partida[partida]['team2']['code'];
-        time2_gols = dados_partida[partida]['score2'];
 
-        time_mandante = Time(time1_nome,time1_sigla);
-        time_visitante = Time(time2_nome, time2_sigla);
 
-        data_partida = dados_partida[partida]['date'];
-        grupo_copa = dados_partida[partida]['group'];
-        hora_partida = dados_partida[partida]['time'];
-
-        partida =  Partida(1,time_mandante,time_visitante,time1_gols,time2_gols,data_partida,grupo_copa,hora_partida);
-        partida.informacoes_partida();
 
 def menu_principal():
     print('Menu Principal');
-    print('1 - Consultar jogos por fase ');
+    print('1 - Consultar jogos por rodada ');
     print('2 - Consultar jogos por grupo ');
     print('3 - Consultar jogos por seleção ');
     print('4 - Consultar jogos por estádio ');
     print('5 - Consulta jogos por cidade ');
     print('6 - Consultar gols de determinado jogador');
+    print('7 - Resultados copa do mundo');
     print('0 - Sair');
+
+
 def main():
     opcao: int = -1;
     while opcao != 0:
@@ -201,11 +249,12 @@ def main():
             rodada: int = ler_rodada();
             consulta_rodadas(rodada);
         elif opcao == 2:
-            print();
+            grupo: str = input('Digite o grupo que deseja -  Ex: A,B,C : ');
+            consultar_por_grupo(grupo);
         elif opcao == 3:
             selecao: str = '';
             while not consultar_por_selecao(selecao):
-                selecao = input('Digite o código da seleção. Ex: BRA para Brasil ');
+                selecao = input('Digite o código da seleção - Ex: BRA para Brasil : ');
                 consultar_por_selecao(selecao);
         elif opcao == 4:
             estadio: str = '';
@@ -223,8 +272,8 @@ def main():
             while not jogador_valido:
                 nome_jogador = input('Digite o nome do jogador: ');
                 jogador_valido = consultar_gols_jogador(nome_jogador);
-
-
+        elif opcao == 7:
+            analistar_resultados();
 
 
 if __name__ == '__main__':

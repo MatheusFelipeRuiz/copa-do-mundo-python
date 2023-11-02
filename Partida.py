@@ -15,6 +15,9 @@ class Partida:
     _hora: str;
 
     @property
+    def id(self) -> int:
+        return self._id;
+    @property
     def mandante(self) -> Time:
         return self._mandante;
     @property

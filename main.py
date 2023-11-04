@@ -13,22 +13,6 @@ PARTIDAS: list[Partida] = [];
 GOLS: list[Gol] = [];
 
 
-@dataclass
-class Grupo:
-    _nome: str;
-    _partidas: list[Partida];
-
-    @property
-    def nome(self) -> str:
-        return self._nome;
-
-    @property
-    def partidas(self) -> list[Partida]:
-        return self._partidas;
-
-    def consultar_jogos_grupo(self):
-        for partida in self.partidas:
-            partida.informacoes_partida();
 
 def carregar_grupo(grupo: str) -> list[int]:
     partidas_carregadas();

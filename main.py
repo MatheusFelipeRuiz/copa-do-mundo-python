@@ -5,7 +5,7 @@ from Jogador import Jogador;
 from Time import Time;
 
 resposta = requests.get(
-    'https://raw.githubusercontent.com/openfootball/worldcup.json/master/2018/worldcup.json').json();
+    'https://raw.githubusercontent.com/leandroflores/api-world-cup/main/results_2018').json();
 
 PARTIDAS: list[Partida] = [];
 GOLS: list[Gol] = [];

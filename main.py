@@ -10,10 +10,30 @@ resposta = requests.get(
 PARTIDAS: list[Partida] = [];
 GOLS: list[Gol] = [];
 
-def carregar_grupo(grupo: str) -> list[int]:
+def criar_partida(partida: dict) -> Partida:
+    time1_nome: str = partida['team1']['name'];
+    time1_codigo: int = partida['team1']['code'];
+
+    time2_nome: str = partida['team2']['name'];
+    time2_codigo: int = partida['team2']['code'];
+
+    id: int = partida['num'];
+    data_partida: str = partida['date'];
+    mandante: Time = Time(time1_nome, time1_codigo);
+    visitante: Time = Time(time2_nome, time2_codigo);
+    gols_mandante: int = partida['score1'];
+    gols_visitante: int = partida['score2'];
+
+    cidade: str = partida['city'];
+    estadio: str = partida['stadium']['name'];
+    horario: str = partida['time'];
+    partida: Partida = Partida(id, mandante, visitante, gols_mandante, gols_visitante,
+                               data_partida, cidade, estadio, horario);
+    return partida;
+def carregar_grupo(grupo: str) -> list[Partida]:
     partidas_carregadas();
     rodadas: list[dict] = resposta['rounds'];
-    identificador_partidas: list[int] = [];
+    partidas_grupo: list[Partida] = [];
 
     for rodada in rodadas:
         partidas: list[dict] = rodada['matches'];
@@ -21,18 +41,16 @@ def carregar_grupo(grupo: str) -> list[int]:
             if 'group' in partida:
                 grupo_partida: str = partida['group'];
                 if grupo in grupo_partida:
-                    identificador_partidas.append(partida['num']);
-    return identificador_partidas;
+                    partidas_grupo.append(criar_partida(partida));
+    return partidas_grupo;
 
 
-def carregar_rodada(rodada: int) -> list[int]:
-    partidas_carregadas();
-    identificador_partidas: list[int] = [];
+def carregar_rodada(rodada: int) -> list[Partida]:
     partidas: list[dict] = resposta['rounds'][rodada]['matches'];
+    partidas_rodada: list[Partida] = [];
     for partida in partidas:
-        id: int = partida['num'];
-        identificador_partidas.append(id);
-    return identificador_partidas;
+        partidas_rodada.append(criar_partida(partida));
+    return partidas_rodada;
 
 
 def carregar_partidas() -> None:
@@ -40,26 +58,7 @@ def carregar_partidas() -> None:
     for rodada in rodadas:
         partidas: list[dict] = rodada['matches'];
         for partida_rodada in partidas:
-            time1_nome: str = partida_rodada['team1']['name'];
-            time1_codigo: int = partida_rodada['team1']['code'];
-
-            time2_nome: str = partida_rodada['team2']['name'];
-            time2_codigo: int = partida_rodada['team2']['code'];
-
-            id: int = partida_rodada['num'];
-            data_partida: str = partida_rodada['date'];
-            mandante: Time = Time(time1_nome, time1_codigo);
-            visitante: Time = Time(time2_nome, time2_codigo);
-            gols_mandante: int = partida_rodada['score1'];
-            gols_visitante: int = partida_rodada['score2'];
-
-            cidade: str = partida_rodada['city'];
-            estadio: str = partida_rodada['stadium']['name'];
-            horario: str = partida_rodada['time'];
-            partida: Partida = Partida(id, mandante, visitante, gols_mandante, gols_visitante,
-                                       data_partida, cidade, estadio, horario);
-            PARTIDAS.append(partida);
-
+            PARTIDAS.append(criar_partida(partida_rodada));
 
 def carregar_gols() -> None:
     rodadas: list[dict] = resposta['rounds'];
@@ -71,11 +70,8 @@ def carregar_gols() -> None:
                 lista_gols: list[dict] = partida['goals1'];
                 for gol in lista_gols:
                     nome_jogador: str = gol['name'];
-                    minuto_gol: str = gol['minute'];
-                    gol: Gol = Gol(nome_jogador, minuto_gol);
+                    gol: Gol = Gol(nome_jogador);
                     GOLS.append(gol);
-
-
 def partidas_carregadas() -> None:
     if len(PARTIDAS) == 0:
         carregar_partidas();
@@ -111,7 +107,6 @@ def consulta_por_cidade(cidade: str) -> bool:
     return com_partidas(partidas_cidade);
 
 def consultar_gols_jogador(jogador: str) -> bool:
-    partidas_carregadas();
     if len(GOLS) == 0:
         carregar_gols();
 
@@ -130,42 +125,43 @@ def consultar_gols_jogador(jogador: str) -> bool:
 
 
 def consulta_rodadas(rodada: int):
-    partidas_rodada: list[int] = carregar_rodada(rodada);
+    partidas_rodada: list[Partida] = carregar_rodada(rodada);
     qtde_partidas: int = len(partidas_rodada);
     print('=-' * 50);
     print(f'Quantidade de partidas na rodada: {qtde_partidas} partidas');
     print('=-' * 50);
-    partidas: list[Partida] = list(
-        filter(lambda partida: partida.id in partidas_rodada,PARTIDAS)
-    );
-    com_partidas(partidas);
+    com_partidas(partidas_rodada);
 
 def consultar_por_grupo(grupo: str):
-    partidas_carregadas();
-    lista_id_partidas: list[int] = carregar_grupo(grupo);
-    partidas: list[Partida] = list(
-      filter(lambda partida: partida.id in lista_id_partidas,PARTIDAS)
-    );
-    com_partidas(partidas);
-def analistar_resultados():
-    partidas_carregadas();
+    lista_partidas: list[Partida] = carregar_grupo(grupo);
+    com_partidas(lista_partidas);
+def get_qtde_vitorias_mandante() -> int:
     qtde_vitorias_mandante: int = 0;
+    for partida in PARTIDAS:
+        if partida.gols_mandante > partida.gols_visitante:
+            qtde_vitorias_mandante += 1;
+    return qtde_vitorias_mandante;
+def get_qtde_vitorias_visitante() -> int:
     qtde_vitorias_visitante: int = 0;
+    for partida in PARTIDAS:
+        if partida.gols_mandante < partida.gols_visitante:
+            qtde_vitorias_visitante += 1;
+    return qtde_vitorias_visitante;
+
+def get_qtde_empates() -> int:
     qtde_empates: int = 0;
     for partida in PARTIDAS:
-        gols_mandante: int = partida.gols_mandante;
-        gols_visitante: int = partida.gols_visitante;
-
-        if gols_mandante > gols_visitante:
-            qtde_vitorias_mandante += 1;
-        elif gols_visitante > gols_mandante:
-            qtde_vitorias_visitante += 1;
-        else:
+        if partida.gols_mandante == partida.gols_visitante:
             qtde_empates += 1;
+    return qtde_empates
+
+def analistar_resultados():
+    partidas_carregadas();
+
     print('=-' * 30);
-    print(f'Quantidade de vitórias mandante: {qtde_vitorias_mandante} vitórias');
-    print(f'Quantidade de vitórias visitante: {qtde_vitorias_visitante} vitórias');
-    print(f'Quantidade de empates: {qtde_empates} empates');
+    print(f'Quantidade de vitórias mandante: {get_qtde_vitorias_mandante()} vitórias');
+    print(f'Quantidade de vitórias visitante: {get_qtde_vitorias_visitante()} vitórias');
+    print(f'Quantidade de empates: {get_qtde_empates()} empates');
     print('=-' * 30);
 
 
@@ -232,7 +228,6 @@ def main():
                 jogador_valido = consultar_gols_jogador(nome_jogador);
         elif opcao == 7:
             analistar_resultados();
-
 
 if __name__ == '__main__':
     main();

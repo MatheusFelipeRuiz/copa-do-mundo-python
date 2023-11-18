@@ -206,20 +206,23 @@ def main():
             grupo: str = input('Digite o grupo que deseja -  Ex: A,B,C : ');
             consultar_por_grupo(grupo);
         elif opcao == 3:
-            selecao: str = '';
-            while not consultar_por_selecao(selecao):
+            selecao_encontrada: bool = False;
+            while not selecao_encontrada:
                 selecao = input('Digite o código da seleção - Ex: BRA para Brasil : ');
-                consultar_por_selecao(selecao);
+                if consultar_por_selecao(selecao):
+                    selecao_encontrada = True;
         elif opcao == 4:
-            estadio: str = '';
-            while not consultar_por_estadio(estadio):
+            estadio_encontrado: bool = False;
+            while not estadio_encontrado:
                 estadio = input('Digite o nome do estádio: ');
-                consultar_por_estadio(estadio);
+                if consultar_por_estadio(estadio):
+                    estadio_encontrado = True;
         elif opcao == 5:
-            cidade: str = '';
-            while not consulta_por_cidade(cidade):
+            cidade_encontrada = False;
+            while not cidade_encontrada:
                 cidade = input('Digite o nome da cidade: ');
-                consultar_por_estadio(cidade);
+                if consulta_por_cidade(cidade):
+                    cidade_encontrada = True;
         elif opcao == 6:
             nome_jogador: str = 'desconhecido';
             jogador_valido: bool = consultar_gols_jogador(nome_jogador);
@@ -228,6 +231,7 @@ def main():
                 jogador_valido = consultar_gols_jogador(nome_jogador);
         elif opcao == 7:
             analistar_resultados();
+
 
 if __name__ == '__main__':
     main();
